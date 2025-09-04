@@ -301,6 +301,10 @@ end
 ---@param node_click_area node|nil Additional node to check for click area. If nil, only node will be checked
 ---@local
 function M.pick_node(node, x, y, node_click_area)
+	if not x or not y then
+		return false -- безопасно игнорируем событие без координат
+	end
+
 	local is_pick = gui_pick_node(node, x, y)
 
 	if node_click_area then
