@@ -8,6 +8,7 @@ The component for manage the nodes position in the grid with various options
 
 - [init](#init)
 - [get_pos](#get_pos)
+- [get_index_xy](#get_index_xy)
 - [get_index](#get_index)
 - [get_index_by_node](#get_index_by_node)
 - [set_anchor](#set_anchor)
@@ -16,6 +17,7 @@ The component for manage the nodes position in the grid with various options
 - [add](#add)
 - [set_items](#set_items)
 - [remove](#remove)
+- [get_items_count](#get_items_count)
 - [get_size](#get_size)
 - [get_size_for](#get_size_for)
 - [get_borders](#get_borders)
@@ -26,7 +28,6 @@ The component for manage the nodes position in the grid with various options
 - [set_in_row](#set_in_row)
 - [set_item_size](#set_item_size)
 - [sort_nodes](#sort_nodes)
-
 ## Fields
 
 - [on_add_item](#on_add_item)
@@ -76,6 +77,22 @@ Return pos for grid node index
 
 - **Returns:**
 	- `position` *(vector3)*: Node position
+
+### get_index_xy
+
+---
+```lua
+grid:get_index_xy(x, y)
+```
+
+Return grid index by content-local x, y. Inverse of get_pos + _get_dynamic_offset.
+
+- **Parameters:**
+	- `x` *(number)*:
+	- `y` *(number)*:
+
+- **Returns:**
+	- `index` *(number)*: The node index
 
 ### get_index
 
@@ -196,6 +213,18 @@ Remove the item from the grid. Note that gui node will be not deleted
 
 - **Returns:**
 	- `node` *(node)*: The deleted gui node from grid
+
+### get_items_count
+
+---
+```lua
+grid:get_items_count()
+```
+
+Return items count in grid
+
+- **Returns:**
+	- `count` *(number)*: The items count in grid
 
 ### get_size
 

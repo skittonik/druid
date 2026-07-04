@@ -114,6 +114,12 @@
 	"ui_example_basic_scroll_bind_grid_points": "Scroll Grid Points",
 	"ui_example_basic_scroll_bind_grid_points_description": "Scrolls with points of interest to snap to",
 
+	"ui_example_basic_scroll_bind_grid_cards": "Scroll Grid Cards",
+	"ui_example_basic_scroll_bind_grid_cards_description": "Mark elements to snap, and control over this elements with scroll or buttons",
+
+	"ui_example_layout_scroll_bind_cards": "Scroll Layout Cards",
+	"ui_example_layout_scroll_bind_cards_description": "Mark elements to snap, and control over this elements with scroll or buttons",
+
 	"ui_example_basic_input": "Input",
 	"ui_example_basic_input_description": "How to make most simple input in Druid",
 
@@ -128,6 +134,15 @@
 
 	"ui_example_rich_text_tags": "Rich Text Tags",
 	"ui_example_rich_text_tags_description": "Here is a example of rich text with tags\n - <color=A1D7F5>color</color>\n - font\n - size\n - br\n - img",
+
+	"ui_example_rich_text_split_animated": "Rich Text Split",
+	"ui_example_rich_text_split_animated_description": "Rich text with set_split_to_characters and per-letter animation",
+
+	"ui_example_rich_text_resize": "Rich Text Resize",
+	"ui_example_rich_text_resize_description": "Long rich text with width and height sliders (set_width / set_height)",
+
+	"ui_width": "Width",
+	"ui_height": "Height",
 
 	"ui_example_basic_swipe": "Swipe",
 	"ui_example_basic_swipe_description": "How to add callbacks on swipe events",

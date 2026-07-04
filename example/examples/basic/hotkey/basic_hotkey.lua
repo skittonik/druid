@@ -10,6 +10,7 @@ end
 
 
 function M:on_hotkey()
+	gui.set_scale(self.root, vmath.vector3(1.0))
 	gui.animate(self.root, gui.PROP_SCALE, vmath.vector3(1.2), gui.EASING_OUTELASTIC, 0.5, 0, function()
 		gui.animate(self.root, gui.PROP_SCALE, vmath.vector3(1), gui.EASING_OUTELASTIC, 0.5)
 	end)
