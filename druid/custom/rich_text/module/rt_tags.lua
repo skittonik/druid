@@ -40,21 +40,32 @@ local function split(s, token)
 end
 
 
+-- def-arch: style.COLORS lookup (named <color=NAME> tags) is a project
+-- extension over upstream Druid — see docs/versions.md.
+local function get_color_value(style, params)
+	if style and style.COLORS and style.COLORS[params] then
+		return color.get_color(style.COLORS[params])
+	end
+
+	return color.get_color(params)
+end
+
+
 -- Format: <color=[#]{HEX_VALUE}>{Text}</color>
 -- Format: <color={COLOR_NAME}>{Text}</color>
 -- Example: <color=FF0000>Rich Text</color>
 M.register("color", function(params, settings, style)
-	settings.color = color.get_color(params)
+	settings.color = get_color_value(style, params)
 end)
 
 
 M.register("shadow", function(params, settings, style)
-	settings.shadow = color.get_color(params)
+	settings.shadow = get_color_value(style, params)
 end)
 
 
 M.register("outline", function(params, settings, style)
-	settings.outline = color.get_color(params)
+	settings.outline = get_color_value(style, params)
 end)
 
 

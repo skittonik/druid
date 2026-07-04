@@ -311,7 +311,16 @@ end
 function M:update(dt)
 	self._is_late_remove_enabled = true
 
+	-- def-arch: early-out on zero ON_UPDATE subscribers is a project extension
+	-- over upstream Druid (AGENTS.md "provably zero idle overhead") — see
+	-- docs/versions.md.
 	local components = self.components_interest[const.ON_UPDATE]
+	if not components[1] then
+		self._is_late_remove_enabled = false
+		self:_clear_late_remove()
+		return
+	end
+
 	for i = 1, #components do
 		components[i]:update(dt)
 	end
@@ -685,9 +694,10 @@ local rich_text = require("druid.custom.rich_text.rich_text")
 ---Create RichText component.
 ---@param text_node string|node The text node to make Rich Text
 ---@param value string|nil The initial text value. Default will be gui.get_text(text_node)
+---@param opts table|nil Optional params ({ disable_adjust = true })
 ---@return druid.rich_text rich_text The new rich text component
-function M:new_rich_text(text_node, value)
-	return self:new(rich_text, text_node, value)
+function M:new_rich_text(text_node, value, opts)
+	return self:new(rich_text, text_node, value, opts)
 end
 
 
@@ -696,9 +706,10 @@ local rich_input = require("druid.custom.rich_input.rich_input")
 ---As a template please check rich_input.gui layout.
 ---@param template string The template string name
 ---@param nodes table|nil Nodes table from gui.clone_tree
+---@param max_length number|nil Maximum text length for input
 ---@return druid.rich_input rich_input The new rich input component
-function M:new_rich_input(template, nodes)
-	return self:new(rich_input, template, nodes)
+function M:new_rich_input(template, nodes, max_length)
+	return self:new(rich_input, template, nodes, max_length)
 end
 
 

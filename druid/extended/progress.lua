@@ -67,6 +67,7 @@ end
 
 ---@private
 function M:on_layout_change()
+	self._bar_applied = nil
 	self:set_to(self.last_value)
 end
 
@@ -83,7 +84,7 @@ function M:update(dt)
 		local prev_value = self.last_value
 		local step = math.abs(self.last_value - self.target) * (self.style.SPEED * dt)
 		step = math.max(step, self.style.MIN_DELTA)
-		self:set_to(helper.step(self.last_value, self.target, step))
+		self:_set_bar_to(helper.step(self.last_value, self.target, step))
 
 		if self.last_value == self.target then
 			self:_check_steps(prev_value, self.target, self.target)
@@ -121,6 +122,8 @@ end
 ---@return druid.progress self Current progress instance
 function M:set_to(to)
 	to = helper.clamp(to, 0, 1)
+	self.target = nil
+	self.target_callback = nil
 	self:_set_bar_to(to)
 
 	return self
@@ -172,6 +175,7 @@ end
 ---@return druid.progress self Current progress instance
 function M:set_max_size(max_size)
 	self.max_size[self.key] = max_size[self.key]
+	self._bar_applied = nil
 	self:set_to(self.last_value)
 
 	return self
@@ -207,9 +211,14 @@ end
 ---@private
 ---@param set_to number The value to set the progress bar to
 function M:_set_bar_to(set_to, is_silent)
+	if self._bar_applied == true and self.last_value == set_to then
+		return self
+	end
+
 	local prev_value = self.last_value
 	local other_side = self.key == "x" and "y" or "x"
 	self.last_value = set_to
+	self._bar_applied = true
 
 	local total_width = set_to * self.max_size[self.key]
 

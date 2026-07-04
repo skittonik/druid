@@ -44,6 +44,12 @@ local function split_line(line, settings, words)
 		add_word(ws_start .. ws_end, settings, words)
 	else
 		local wi = #words
+		local font_resource = gui.get_font_resource(settings.font or gui.get_font(settings.text_prefab))
+		local space_width = resource.get_text_metrics(font_resource, " ").width
+		-- def-arch: SPACE_MODIFIER kerning compensation is a project extension
+		-- over upstream Druid — see docs/versions.md.
+		local SPACE_MODIFIER = 0.12
+
 		for word in trimmed_text:gmatch("%S+") do
 			if settings.split_to_characters then
 				for i = 1, #word do
@@ -53,7 +59,10 @@ local function split_line(line, settings, words)
 				end
 				add_word(" ", settings, words)
 			else
-				add_word(word .. " ", settings, words)
+				local word_width = resource.get_text_metrics(font_resource, word).width
+				local extra_spaces = math.ceil(word_width * SPACE_MODIFIER / space_width)
+				local spaces_count = 1 + extra_spaces
+				add_word(word .. string.rep(" ", spaces_count), settings, words)
 			end
 		end
 		local first = words[wi + 1]
@@ -168,7 +177,13 @@ function M.parse(text, default_settings, style)
 			-- example <br/> and <img=texture:image/>
 			local empty_tag_settings = parse_tag(name, params, style)
 			merge_tags(empty_tag_settings, word_settings)
-			add_word("", empty_tag_settings, all_words)
+			if name == "sp" then
+				-- def-arch: <sp/> multi-space tag is a project extension over
+				-- upstream Druid — see docs/versions.md.
+				add_word("    ", empty_tag_settings, all_words)
+			else
+				add_word("", empty_tag_settings, all_words)
+			end
 		elseif not is_endtag then
 			-- open tag - parse and add it
 			local tag_settings = parse_tag(name, params, style)

@@ -14,6 +14,8 @@ local utf8 = utf8 or utf8_lua
 local M = component.create("druid.rich_input")
 
 local DOUBLE_CLICK_TIME = 0.35
+local MAX_TEXT_LENGTH = 24
+local CARET_WIDTH = 2
 
 local function animate_cursor(self)
 	gui.cancel_animations(self.cursor_text, "color.w")
@@ -23,11 +25,17 @@ end
 
 
 local function set_selection_width(self, selection_width)
-	gui.set_visible(self.cursor, selection_width > 0)
+	local is_selection = selection_width > 0
 
 	local width = selection_width / self.input.text.scale.x
+	if width <= 0 then
+		width = CARET_WIDTH / self.input.text.scale.x
+	end
 	local height = gui.get_size(self.cursor).y
 	gui.set_size(self.cursor, vmath.vector3(width, height, 0))
+	local color = gui.get_color(self.cursor)
+	color.w = is_selection and 0.5 or 0
+	gui.set_color(self.cursor, color)
 
 	local is_selection_to_right = self.input.cursor_index == self.input.end_index
 	gui.set_pivot(self.cursor, is_selection_to_right and gui.PIVOT_E or gui.PIVOT_W)
@@ -37,7 +45,7 @@ end
 ---@param self druid.rich_input
 local function update_text(self)
 	local full_text = self.input:get_text()
-	local visible_text = self.input.text:get_text()
+	local visible_text = gui.get_text(self.input.text.node)
 
 	local is_truncated = visible_text ~= full_text
 	local cursor_index = self.input.cursor_index
@@ -102,8 +110,8 @@ end
 local TEMP_VECTOR = vmath.vector3(0)
 local function get_index_by_touch(self, touch)
 	local text_node = self.input.text.node
-	TEMP_VECTOR.x = touch.screen_x
-	TEMP_VECTOR.y = touch.screen_y
+	TEMP_VECTOR.x = touch.screen_x or touch.x
+	TEMP_VECTOR.y = touch.screen_y or touch.y
 
 	-- Distance to the text node position
 	local scene_scale = helper.get_scene_scale(text_node)
@@ -112,10 +120,16 @@ local function get_index_by_touch(self, touch)
 
 	-- Offset to the left side of the text node
 	local pivot_offset = helper.get_pivot_offset(gui.get_pivot(text_node))
-	local_pos.x = local_pos.x + self.input.total_width * (0.5 + pivot_offset.x)
+	local visible_text = gui.get_text(text_node)
+	local visible_text_width = self.input.text:get_text_size(visible_text)
+	local_pos.x = local_pos.x + visible_text_width * (0.5 + pivot_offset.x)
 	local_pos.x = local_pos.x - self.text_position.x
 
 	local cursor_index = self.input.text:get_text_index_by_width(local_pos.x)
+	local visible_length = utf8.len(visible_text)
+	if cursor_index > visible_length then
+		cursor_index = visible_length
+	end
 	return cursor_index
 end
 
@@ -137,7 +151,7 @@ local function on_touch_start_callback(self, touch)
 	self._last_touch_info.cursor_index = cursor_index
 	self._last_touch_info.time = socket.gettime()
 
-	if self.input.is_lshift then
+	if self.is_lshift then
 		local start_index = self.input.start_index
 		local end_index = self.input.end_index
 
@@ -172,9 +186,12 @@ local function on_drag_callback(self, dx, dy, x, y, touch)
 end
 
 
+-- def-arch: the max_length constructor param is a project extension over
+-- upstream Druid — see docs/versions.md.
 ---@param template string The template string name
 ---@param nodes table Nodes table from gui.clone_tree
-function M:init(template, nodes)
+---@param max_length number|nil Maximum text length for input field
+function M:init(template, nodes, max_length)
 	self.druid = self:get_druid(template, nodes)
 	self.root = self:get_node("root")
 
@@ -195,9 +212,12 @@ function M:init(template, nodes)
 	self.drag = self.druid:new_drag("button", on_drag_callback)
 	self.drag.on_touch_start:subscribe(on_touch_start_callback)
 	self.drag:set_input_priority(const.PRIORITY_INPUT_MAX + 1)
+	self.drag.style.DRAG_DEADZONE = 0
 	self.drag:set_enabled(false)
 
 	self.input:set_text("")
+	self.max_text_length = max_length or MAX_TEXT_LENGTH
+	self.input:set_max_length(self.max_text_length)
 	self.placeholder = self.druid:new_text("placeholder_text")
 	self.text_position = gui.get_position(self.input.text.node)
 
@@ -270,7 +290,7 @@ end
 ---@return druid.rich_input self Current instance
 function M:set_text(text)
 	self.input:set_text(text)
-	gui.set_enabled(self.placeholder.node, true and #self.input:get_text() == 0)
+	gui.set_enabled(self.placeholder.node, #self.input:get_text() == 0)
 
 	return self
 end

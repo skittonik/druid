@@ -154,8 +154,14 @@ end
 function M:set_to(set_to)
 	set_to = tostring(set_to or "")
 
+	-- def-arch: skip gui.set_text() when the value is unchanged — project
+	-- extension over upstream Druid (avoids redundant text-layout work on
+	-- repeated set_to calls) — see docs/versions.md.
+	local is_same_value = self.last_value == set_to
 	self.last_value = set_to
-	gui.set_text(self.node, set_to)
+	if is_same_value ~= true then
+		gui.set_text(self.node, set_to)
+	end
 
 	self.on_set_text:trigger(self:get_context(), set_to)
 

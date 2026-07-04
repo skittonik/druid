@@ -471,8 +471,15 @@ function M._update_nodes(lines, settings)
 				gui.play_flipbook(node, hash(word.image.anim))
 				gui.set_color(node, word.color or COLOR_WHITE)
 				gui.set_inherit_alpha(node, true)
+				-- def-arch: auto-assign layer by atlas name (AGENTS.md "Layer rules").
+				-- Without this every dynamic rich_text image lands on default layer
+				-- and breaks WebGL batching. Layer is expected to exist in the
+				-- consumer .gui; missing layer is non-fatal (pcall).
+				pcall(gui.set_layer, node, word.image.texture)
 			else
 				node = word.node or gui.clone(settings.text_prefab)
+				-- def-arch: text nodes inherit layer from settings.text_prefab on
+				-- clone. Consumer .gui must put text_prefab on layer "text".
 				gui.set_outline(node, word.outline)
 				gui.set_shadow(node, word.shadow)
 				gui.set_text(node, word.text)

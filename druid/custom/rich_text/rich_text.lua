@@ -70,11 +70,16 @@ local VECTOR3_ONE = vmath.vector3(1)
 ---@field node_size vector3|nil
 
 ---The component that handles a rich text display, allows to custom color, size, font, etc. of the parts of the text
+-- def-arch: opts.disable_adjust, style.COLORS, and the _needs_rebuild-based
+-- caching are project extensions over upstream Druid — see docs/versions.md
+-- for rationale before re-vendoring this file from a Druid release.
 ---@class druid.rich_text: druid.component
 ---@field root node The root text node of the rich text
 ---@field text_prefab node The text prefab node
 ---@field private _last_value string The last value of the rich text
 ---@field private _settings table The settings of the rich text
+---@field private _disable_adjust boolean Disable auto adjust to area
+---@field private _needs_rebuild boolean Force rebuild on next set_text
 ---@field private _split_to_characters boolean The split to characters flag
 ---@field private _anchor vector3|nil Anchor position when pivot is set (keeps content in place on resize)
 local M = component.create("rich_text")
@@ -82,17 +87,22 @@ local M = component.create("rich_text")
 
 ---@param text_node node|string The text node to make Rich Text
 ---@param value string|nil The initial text value. Default will be gui.get_text(text_node)
-function M:init(text_node, value)
+---@param opts table|nil Optional params ({ disable_adjust = true })
+function M:init(text_node, value, opts)
 	self.root = self:get_node(text_node)
 	self.text_prefab = self.root
+	self._disable_adjust = opts and opts.disable_adjust == true
+	self._needs_rebuild = false
 
-	self._last_value = value or gui.get_text(self.text_prefab) or ""
+	self._last_value = value or gui.get_text(self.text_prefab)
 	self._settings = self:_create_settings()
 	self._split_to_characters = false
 
 	gui.set_text(self.root, "")
 
-	self:set_text(self._last_value)
+	if value then
+		self:set_text(value)
+	end
 end
 
 
@@ -100,7 +110,11 @@ end
 function M:on_layout_change()
 	gui.set_text(self.root, "")
 	self._settings = self:_create_settings()
-	self:set_text(self._last_value)
+	self._needs_rebuild = true
+
+	if self._last_value then
+		self:set_text(self._last_value)
+	end
 end
 
 
@@ -108,9 +122,11 @@ end
 ---@param style druid.rich_text.style
 function M:on_style_change(style)
 	self.style = {
+		COLORS = style.COLORS or {},
 		ADJUST_STEPS = style.ADJUST_STEPS or 20,
 		ADJUST_SCALE_DELTA = style.ADJUST_SCALE_DELTA or 0.02,
 	}
+	self._needs_rebuild = true
 end
 
 
@@ -143,12 +159,18 @@ end
 ---		rich_text:set_text("＜img=texture:image,size＞Display image with size")
 ---		rich_text:set_text("＜img=texture:image,width,height＞Display image with width and height")
 ---@param text string|nil The text to set
+---@param force_rebuild boolean|nil Force full rebuild even if text didn't change
 ---@return druid.rich_text.word[] words
 ---@return druid.rich_text.lines_metrics line_metrics
-function M:set_text(text)
+function M:set_text(text, force_rebuild)
 	text = text or ""
+	if not force_rebuild and not self._needs_rebuild and self._words and self._last_value == text then
+		return self._words, self._line_metrics
+	end
+
 	self:clear()
 	self._last_value = text
+	self._needs_rebuild = false
 
 	if self._anchor then
 		local size = gui.get_size(self.root)
@@ -167,7 +189,9 @@ function M:set_text(text)
 	self._settings.split_to_characters = self._split_to_characters
 
 	local words, settings, line_metrics = rich_text.create(text, self._settings, self.style)
-	line_metrics = rich_text.adjust_to_area(words, settings, line_metrics, self.style)
+	if not self._disable_adjust then
+		line_metrics = rich_text.adjust_to_area(words, settings, line_metrics, self.style)
+	end
 
 	self._words = words
 	self._line_metrics = line_metrics
@@ -221,9 +245,9 @@ function M:clear()
 		rich_text.remove(self._words)
 		self._words = nil
 	end
+	self._line_metrics = nil
 	self._last_value = nil
-
-	return self
+	self._needs_rebuild = false
 end
 
 
@@ -244,6 +268,7 @@ end
 ---@return druid.rich_text self
 function M:set_split_to_characters(value)
 	self._split_to_characters = value
+	self._needs_rebuild = true
 	return self
 end
 
@@ -307,6 +332,7 @@ end
 function M:set_width(width)
 	gui.set(self.root, "size.x", width)
 	self._settings.width = width
+	self._needs_rebuild = true
 	return self
 end
 
@@ -317,6 +343,7 @@ end
 function M:set_height(height)
 	gui.set(self.root, "size.y", height)
 	self._settings.height = height
+	self._needs_rebuild = true
 	return self
 end
 
